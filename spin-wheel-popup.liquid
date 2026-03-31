@@ -1,0 +1,1581 @@
+<style>
+.spin-wheel-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: {{ section.settings.overlay_bg }};
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.spin-wheel-overlay.active {
+  display: flex;
+}
+
+.spin-wheel-container {
+  background: {{ section.settings.popup_bg }};
+  border-radius: {{ section.settings.popup_border_radius }}px;
+  padding: {{ section.settings.popup_padding }}px {{ section.settings.popup_padding_horizontal }}px;
+  max-width: {{ section.settings.popup_width }}px;
+  width: 100%;
+  max-height: 95vh;
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* Wrapper com scroll controlado */
+.spin-wheel-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(95vh - 40px);
+  padding-right: 5px;
+}
+
+/* Estilização do scrollbar */
+.spin-wheel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.spin-wheel-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+.spin-wheel-content::-webkit-scrollbar-thumb {
+  background: {{ section.settings.btn_bg }};
+  border-radius: 10px;
+}
+
+.spin-wheel-content::-webkit-scrollbar-thumb:hover {
+  background: {{ section.settings.btn_bg_hover }};
+}
+
+.spin-wheel-close {
+  position: absolute;
+  top: {{ section.settings.close_btn_top }}px;
+  right: {{ section.settings.close_btn_right }}px;
+  background: rgba(255, 0, 0, 0.89);
+  border: none;
+  font-size: {{ section.settings.close_btn_size }}px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: {{ section.settings.close_btn_size }}px;
+  height: {{ section.settings.close_btn_size }}px;
+  color: white;
+  z-index: 10;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 300;
+  letter-spacing: -0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.spin-wheel-close:hover {
+  background: rgb(255, 70, 70);
+  transform: scale(1.08);
+}
+
+.spin-wheel-close:active {
+  transform: scale(0.95);
+}
+
+.spin-wheel-canvas-wrapper {
+  position: relative;
+  width: {{ section.settings.wheel_size }}px;
+  height: {{ section.settings.wheel_size }}px;
+  margin: 0 auto {{ section.settings.wheel_bottom_margin }}px;
+  flex-shrink: 0;
+}
+
+.spin-wheel-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.spin-wheel-pin {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 35px solid {{ section.settings.pin_color }};
+  z-index: 10;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));
+}
+
+.spin-wheel-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border: 2px solid #E0E0E0;
+}
+
+.spin-wheel-logo {
+  width: 65%;
+  height: 65%;
+  object-fit: contain;
+}
+
+.spin-wheel-title {
+  font-size: {{ section.settings.title_size }}px;
+  font-weight: bold;
+  margin-bottom: {{ section.settings.title_bottom_margin }}px;
+  color: {{ section.settings.title_color }};
+  flex-shrink: 0;
+}
+
+.spin-wheel-form {
+  display: flex;
+  flex-direction: column;
+  gap: {{ section.settings.form_gap }}px;
+  flex-shrink: 0;
+}
+
+.spin-wheel-input-group {
+  text-align: left;
+}
+
+.spin-wheel-label {
+  display: block;
+  margin-bottom: {{ section.settings.label_bottom_margin }}px;
+  font-weight: 600;
+  font-size: {{ section.settings.label_size }}px;
+  color: {{ section.settings.label_color }};
+}
+
+.spin-wheel-input,
+.spin-wheel-phone {
+  width: 100%;
+  padding: {{ section.settings.input_padding }}px {{ section.settings.input_padding_horizontal }}px;
+  border: 1px solid {{ section.settings.input_border_color }};
+  border-radius: {{ section.settings.input_border_radius }}px;
+  font-size: {{ section.settings.input_font_size }}px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  box-sizing: border-box;
+}
+
+.spin-wheel-input:focus,
+.spin-wheel-phone:focus {
+  outline: none;
+  border-color: #4FC3F7;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+
+.spin-wheel-input.error,
+.spin-wheel-phone.error {
+  border-color: #e74c3c;
+  background-color: #fff5f5;
+}
+
+.spin-wheel-error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+  display: none;
+}
+
+.spin-wheel-error-message.show {
+  display: block;
+}
+
+.spin-wheel-phone-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.spin-wheel-phone-prefix {
+  padding: {{ section.settings.input_padding }}px 12px;
+  border: 1px solid {{ section.settings.input_border_color }};
+  border-radius: {{ section.settings.input_border_radius }}px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: {{ section.settings.input_font_size }}px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.spin-wheel-phone-prefix img {
+  width: 18px;
+  height: 12px;
+  object-fit: cover;
+}
+
+.spin-wheel-phone {
+  flex: 1;
+  min-width: 0;
+}
+
+.spin-wheel-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-size: {{ section.settings.privacy_font_size }}px;
+  color: #666;
+}
+
+.spin-wheel-checkbox {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.spin-wheel-submit {
+  background: {{ section.settings.btn_bg }};
+  color: {{ section.settings.btn_text }};
+  border: none;
+  padding: {{ section.settings.btn_padding }}px;
+  border-radius: {{ section.settings.btn_border_radius }}px;
+  font-size: {{ section.settings.btn_font_size }}px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.spin-wheel-submit:hover {
+  background: {{ section.settings.btn_bg_hover }};
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+}
+
+.spin-wheel-submit:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.spin-wheel-result {
+  display: none;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.spin-wheel-result.active {
+  display: block;
+}
+
+.spin-wheel-result h3 {
+  font-size: {{ section.settings.result_title_size }}px;
+  color: {{ section.settings.result_title_color }};
+  margin-bottom: {{ section.settings.result_title_bottom_margin }}px;
+}
+
+.spin-wheel-result p {
+  font-size: {{ section.settings.result_text_size }}px;
+  margin-bottom: {{ section.settings.result_text_bottom_margin }}px;
+}
+
+.spin-wheel-copy-code {
+  background: {{ section.settings.copy_btn_bg }};
+  color: white;
+  border: none;
+  padding: {{ section.settings.result_btn_padding }}px {{ section.settings.result_btn_padding_horizontal }}px;
+  border-radius: {{ section.settings.btn_border_radius }}px;
+  font-size: {{ section.settings.result_btn_font_size }}px;
+  cursor: pointer;
+  margin-top: {{ section.settings.result_btn_top_margin }}px;
+  transition: all 0.3s;
+}
+
+.spin-wheel-copy-code:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.spin-wheel-try-again {
+  background: {{ section.settings.try_again_btn_bg }};
+  color: white;
+  border: none;
+  padding: {{ section.settings.result_btn_padding }}px {{ section.settings.result_btn_padding_horizontal }}px;
+  border-radius: {{ section.settings.btn_border_radius }}px;
+  font-size: {{ section.settings.result_btn_font_size }}px;
+  cursor: pointer;
+  margin-top: {{ section.settings.result_btn_top_margin }}px;
+  display: none;
+  transition: all 0.3s;
+}
+
+.spin-wheel-try-again:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+@media (max-width: 480px) {
+  .spin-wheel-overlay {
+    padding: 10px;
+  }
+  
+  .spin-wheel-container {
+    padding: {{ section.settings.popup_padding_mobile }}px {{ section.settings.popup_padding_horizontal_mobile }}px;
+    max-height: 98vh;
+  }
+  
+  .spin-wheel-content {
+    max-height: calc(98vh - 30px);
+  }
+  
+  .spin-wheel-canvas-wrapper {
+    width: {{ section.settings.wheel_size_mobile }}px;
+    height: {{ section.settings.wheel_size_mobile }}px;
+    margin-bottom: {{ section.settings.wheel_bottom_margin_mobile }}px;
+  }
+  
+  .spin-wheel-title {
+    font-size: {{ section.settings.title_size_mobile }}px;
+    margin-bottom: {{ section.settings.title_bottom_margin_mobile }}px;
+  }
+  
+  .spin-wheel-form {
+    gap: {{ section.settings.form_gap_mobile }}px;
+  }
+}
+</style>
+
+<div class="spin-wheel-overlay" id="spinWheelOverlay">
+  <div class="spin-wheel-container">
+    <button class="spin-wheel-close" onclick="closeSpinWheel()">×</button>
+    <div class="spin-wheel-content">
+      <h2 class="spin-wheel-title">{{ section.settings.popup_title }}</h2>
+      <div class="spin-wheel-canvas-wrapper">
+        <div class="spin-wheel-pin"></div>
+        <canvas id="spinWheelCanvas" class="spin-wheel-canvas" width="400" height="400"></canvas>
+        <div class="spin-wheel-center">
+          {% if section.settings.logo_image != blank %}
+          <img src="{{ section.settings.logo_image | img_url: '200x200' }}" alt="Logo" class="spin-wheel-logo">
+          {% endif %}
+        </div>
+      </div>
+      
+      <form class="spin-wheel-form" id="spinWheelForm" onsubmit="return handleSpinSubmit(event)">
+        <div class="spin-wheel-input-group">
+          <label class="spin-wheel-label">{{ section.settings.email_label }}</label>
+          <input
+            type="email"
+            class="spin-wheel-input"
+            placeholder="{{ section.settings.email_placeholder }}"
+            required
+            id="spinEmail"
+          >
+          <div class="spin-wheel-error-message" id="emailError">Por favor, insira um e-mail válido</div>
+        </div>
+        
+        <div class="spin-wheel-input-group">
+          <label class="spin-wheel-label">{{ section.settings.phone_label }}</label>
+          <div class="spin-wheel-phone-wrapper">
+            <div class="spin-wheel-phone-prefix">
+              🇧🇷 +55
+            </div>
+            <input
+              type="tel"
+              class="spin-wheel-phone"
+              placeholder="{{ section.settings.phone_placeholder }}"
+              required
+              id="spinPhone"
+              maxlength="15"
+            >
+          </div>
+          <div class="spin-wheel-error-message" id="phoneError">Por favor, insira um telefone válido (DDD + número)</div>
+        </div>
+        
+        <div class="spin-wheel-privacy">
+          <input type="checkbox" class="spin-wheel-checkbox" required id="spinPrivacy">
+          <label for="spinPrivacy">
+            {{ section.settings.privacy_text }}
+          </label>
+        </div>
+        
+        <button type="submit" class="spin-wheel-submit">{{ section.settings.submit_text }}</button>
+      </form>
+      
+      <div class="spin-wheel-result" id="spinWheelResult">
+        <h3>{{ section.settings.result_emoji }} {{ section.settings.result_title }}</h3>
+        <p>{{ section.settings.result_text_prefix }} <strong id="prizeText"></strong> {{ section.settings.result_text_suffix }}</p>
+        <p id="codeContainer">{{ section.settings.code_label }} <strong id="prizeCode"></strong></p>
+        <button class="spin-wheel-copy-code" onclick="copyDiscountCode()">{{ section.settings.copy_btn_text }}</button>
+        <button class="spin-wheel-try-again" onclick="tryAgain()">{{ section.settings.try_again_btn_text }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Configuração dos prêmios (dinâmica via blocks)
+const prizes = [
+  {% for block in section.blocks %}
+  {
+    text: '{{ block.settings.prize_text }}',
+    color: '{{ block.settings.prize_color }}',
+    code: '{{ block.settings.prize_code }}'
+  }{% unless forloop.last %},{% endunless %}
+  {% endfor %}
+];
+
+let spinning = false;
+let currentRotation = 0;
+
+function drawWheel() {
+  const canvas = document.getElementById('spinWheelCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const outerRadius = canvas.width / 2 - 20;
+  const innerRadius = 40;
+  const sliceAngle = (2 * Math.PI) / prizes.length;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Desenhar círculo externo cinza (borda)
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, outerRadius + 15, 0, 2 * Math.PI);
+  ctx.fillStyle = '#E8E8E8';
+  ctx.fill();
+  
+  prizes.forEach((prize, index) => {
+    // Começar do topo (ponteiro aponta pra cima = -Math.PI/2)
+    const startAngle = index * sliceAngle - Math.PI / 2 + currentRotation;
+    const endAngle = startAngle + sliceAngle;
+    const middleAngle = startAngle + sliceAngle / 2;
+    
+    // Desenhar fatia
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, innerRadius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, outerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    
+    ctx.fillStyle = prize.color;
+    ctx.fill();
+    
+    // Bordas brancas entre fatias
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = {{ section.settings.slice_border_width }};
+    ctx.stroke();
+    
+    // Desenhar texto
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(middleAngle);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'white';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    
+    const textRadius = (innerRadius + outerRadius) / 2;
+    
+    // Tratamento para textos longos
+    if (prize.text.length > 12) {
+      const words = prize.text.split(' ');
+      ctx.font = 'bold 16px Arial';
+      const lineHeight = 18;
+      const startY = -(words.length - 1) * lineHeight / 2;
+      words.forEach((word, i) => {
+        ctx.fillText(word, textRadius, startY + (i * lineHeight));
+      });
+    } else {
+      ctx.font = 'bold 22px Arial';
+      ctx.fillText(prize.text, textRadius, 8);
+    }
+    
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+  
+  // Desenhar círculo branco externo
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, outerRadius + 1, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = {{ section.settings.outer_border_width }};
+  ctx.stroke();
+}
+
+function spinWheel(targetIndex) {
+  if (spinning) return;
+  spinning = true;
+  
+  const sliceAngle = (2 * Math.PI) / prizes.length;
+  const spins = 5;
+  
+  // Ponteiro aponta para cima (topo)
+  const rotationToCenter = -(targetIndex * sliceAngle + sliceAngle / 2);
+  const totalRotation = spins * 2 * Math.PI + rotationToCenter;
+  const startTime = Date.now();
+  const duration = 4000;
+  
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    currentRotation = easeProgress * totalRotation;
+    drawWheel();
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      showResult(targetIndex);
+    }
+  }
+  
+  animate();
+}
+
+function showResult(index) {
+  const prize = prizes[index];
+  document.getElementById('spinWheelForm').style.display = 'none';
+  document.getElementById('spinWheelResult').classList.add('active');
+  
+  if (prize.code && prize.code !== 'NONE') {
+    // Ganhou prêmio
+    document.querySelector('.spin-wheel-result h3').textContent = '{{ section.settings.result_emoji }} {{ section.settings.result_title }}';
+    document.querySelector('.spin-wheel-result p').innerHTML = '{{ section.settings.result_text_prefix }} <strong id="prizeText">' + prize.text + '</strong> {{ section.settings.result_text_suffix }}';
+    document.getElementById('prizeText').textContent = prize.text;
+    document.getElementById('prizeCode').textContent = prize.code;
+    document.getElementById('codeContainer').style.display = 'block';
+    document.querySelector('.spin-wheel-copy-code').style.display = 'inline-block';
+    document.querySelector('.spin-wheel-try-again').style.display = 'none';
+  } else {
+    // Tente novamente
+    document.querySelector('.spin-wheel-result h3').textContent = '{{ section.settings.no_prize_emoji }} {{ section.settings.no_prize_title }}';
+    document.querySelector('.spin-wheel-result p').innerHTML = '{{ section.settings.no_prize_text }}';
+    document.getElementById('codeContainer').style.display = 'none';
+    document.querySelector('.spin-wheel-copy-code').style.display = 'none';
+    document.querySelector('.spin-wheel-try-again').style.display = 'inline-block';
+  }
+}
+
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
+
+function validatePhone(phone) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  return cleanPhone.length >= 10 && cleanPhone.length <= 11;
+}
+
+function formatPhone(value) {
+  let phone = value.replace(/\D/g, '');
+  phone = phone.substring(0, 11);
+  
+  if (phone.length <= 10) {
+    phone = phone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  } else {
+    phone = phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  }
+  
+  return phone;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const phoneInput = document.getElementById('spinPhone');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', function(e) {
+      e.target.value = formatPhone(e.target.value);
+    });
+  }
+});
+
+function handleSpinSubmit(event) {
+  event.preventDefault();
+  
+  const email = document.getElementById('spinEmail').value.trim();
+  const phone = document.getElementById('spinPhone').value.trim();
+  const emailInput = document.getElementById('spinEmail');
+  const phoneInput = document.getElementById('spinPhone');
+  const emailError = document.getElementById('emailError');
+  const phoneError = document.getElementById('phoneError');
+  
+  let isValid = true;
+  
+  if (!validateEmail(email)) {
+    emailInput.classList.add('error');
+    emailError.classList.add('show');
+    isValid = false;
+  } else {
+    emailInput.classList.remove('error');
+    emailError.classList.remove('show');
+  }
+  
+  if (!validatePhone(phone)) {
+    phoneInput.classList.add('error');
+    phoneError.classList.add('show');
+    isValid = false;
+  } else {
+    phoneInput.classList.remove('error');
+    phoneError.classList.remove('show');
+  }
+  
+  if (!isValid) {
+    return false;
+  }
+  
+  {% if section.settings.save_to_shopify %}
+  try {
+    fetch('/contact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: new URLSearchParams({
+        'contact[email]': email,
+        'contact[phone]': phone.replace(/\D/g, ''),
+        'contact[tags]': 'spin-wheel-participant',
+        'contact[note]': 'Participou da Roleta da Sorte em ' + new Date().toLocaleString('pt-BR')
+      })
+    }).then(response => {
+      console.log('Dados salvos no Shopify');
+    }).catch(error => {
+      console.error('Erro ao salvar no Shopify:', error);
+    });
+  } catch (error) {
+    console.error('Erro na integração Shopify:', error);
+  }
+  {% endif %}
+  
+  {% if section.settings.klaviyo_enabled %}
+  try {
+    fetch('https://a.klaviyo.com/api/v2/list/{{ section.settings.klaviyo_list_id }}/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: '{{ section.settings.klaviyo_api_key }}',
+        profiles: [
+          {
+            email: email,
+            phone_number: phone.replace(/\D/g, ''),
+            $source: 'Spin Wheel'
+          }
+        ]
+      })
+    }).then(response => {
+      console.log('Dados enviados para Klaviyo');
+    }).catch(error => {
+      console.error('Erro ao enviar para Klaviyo:', error);
+    });
+  } catch (error) {
+    console.error('Erro na integração Klaviyo:', error);
+  }
+  {% endif %}
+  
+  {% if section.settings.mailbiz_enabled %}
+  try {
+    const mailbizData = new URLSearchParams({
+      'APIKey': '{{ section.settings.mailbiz_api_key }}',
+      'Command': 'Subscriber.Subscribe',
+      'ListID': '{{ section.settings.mailbiz_list_id }}',
+      'EmailAddress': email,
+      'MobileNumber': phone.replace(/\D/g, ''),
+      'UpdateIfExists': 'true'
+    });
+    
+    fetch('{{ section.settings.mailbiz_endpoint }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: mailbizData
+    }).then(response => response.json())
+    .then(data => {
+      if (data.Success) {
+        console.log('Dados enviados para Mailbiz com sucesso');
+      } else {
+        console.error('Erro Mailbiz:', data.ErrorMessage);
+      }
+    }).catch(error => {
+      console.error('Erro ao enviar para Mailbiz:', error);
+    });
+  } catch (error) {
+    console.error('Erro na integração Mailbiz:', error);
+  }
+  {% endif %}
+  
+  {% if section.settings.google_sheets_enabled %}
+  try {
+    const sheetsData = {
+      email: email,
+      phone: phone.replace(/\D/g, ''),
+      timestamp: new Date().toLocaleString('pt-BR'),
+      source: 'Roleta da Sorte'
+    };
+    
+    fetch('{{ section.settings.google_sheets_webhook }}', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sheetsData)
+    }).then(() => {
+      console.log('Dados enviados para Google Sheets');
+    }).catch(error => {
+      console.error('Erro ao enviar para Google Sheets:', error);
+    });
+  } catch (error) {
+    console.error('Erro na integração Google Sheets:', error);
+  }
+  {% endif %}
+  
+  // SEMPRE CAI NO PRIMEIRO PRÊMIO (índice 0)
+  const targetIndex = 0;
+  
+  spinWheel(targetIndex);
+  return false;
+}
+
+function copyDiscountCode() {
+  const code = document.getElementById('prizeCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('{{ section.settings.copy_success_text }} ' + code);
+  });
+}
+
+function tryAgain() {
+  document.getElementById('spinWheelResult').classList.remove('active');
+  document.getElementById('spinWheelForm').style.display = 'flex';
+  document.getElementById('spinEmail').value = '';
+  document.getElementById('spinPhone').value = '';
+  document.getElementById('spinPrivacy').checked = false;
+  currentRotation = 0;
+  drawWheel();
+}
+
+function closeSpinWheel() {
+  document.getElementById('spinWheelOverlay').classList.remove('active');
+}
+
+function openSpinWheel() {
+  document.getElementById('spinWheelOverlay').classList.add('active');
+  drawWheel();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', drawWheel);
+} else {
+  drawWheel();
+}
+
+(function() {
+  const SESSION_KEY = 'spinWheelShown';
+  {% if section.settings.show_once_per_session %}
+  if (sessionStorage.getItem(SESSION_KEY)) {
+    return;
+  }
+  {% endif %}
+  
+  setTimeout(function() {
+    openSpinWheel();
+    {% if section.settings.show_once_per_session %}
+    sessionStorage.setItem(SESSION_KEY, 'true');
+    {% endif %}
+  }, {{ section.settings.popup_delay }} * 1000);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Roleta da Sorte",
+  "settings": [
+    {
+      "type": "header",
+      "content": "⚙️ Configurações Gerais"
+    },
+    {
+      "type": "text",
+      "id": "popup_title",
+      "label": "Título do Popup",
+      "default": "Gire e Ganhe"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image",
+      "label": "Logo (centro da roleta)",
+      "info": "Adicione a logo que aparecerá no centro da roleta"
+    },
+    {
+      "type": "range",
+      "id": "popup_delay",
+      "label": "Delay para abrir (segundos)",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "show_once_per_session",
+      "label": "Mostrar apenas 1x por sessão",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "📐 Tamanho e Espaçamento"
+    },
+    {
+      "type": "range",
+      "id": "popup_width",
+      "label": "Largura máxima (px)",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "default": 450
+    },
+    {
+      "type": "range",
+      "id": "popup_padding",
+      "label": "Padding vertical (desktop)",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "popup_padding_horizontal",
+      "label": "Padding horizontal (desktop)",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "popup_padding_mobile",
+      "label": "Padding vertical (mobile)",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "popup_padding_horizontal_mobile",
+      "label": "Padding horizontal (mobile)",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "popup_border_radius",
+      "label": "Borda arredondada",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "🎡 Roleta"
+    },
+    {
+      "type": "range",
+      "id": "wheel_size",
+      "label": "Tamanho da roleta (desktop)",
+      "min": 200,
+      "max": 400,
+      "step": 20,
+      "default": 280
+    },
+    {
+      "type": "range",
+      "id": "wheel_size_mobile",
+      "label": "Tamanho da roleta (mobile)",
+      "min": 180,
+      "max": 300,
+      "step": 20,
+      "default": 240
+    },
+    {
+      "type": "range",
+      "id": "wheel_bottom_margin",
+      "label": "Espaço abaixo da roleta (desktop)",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "wheel_bottom_margin_mobile",
+      "label": "Espaço abaixo da roleta (mobile)",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "🎨 Cores do Popup"
+    },
+    {
+      "type": "color",
+      "id": "overlay_bg",
+      "label": "Fundo do Overlay",
+      "default": "rgba(0, 0, 0, 0.7)"
+    },
+    {
+      "type": "color",
+      "id": "popup_bg",
+      "label": "Fundo do Popup",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "close_btn_color",
+      "label": "Cor do botão fechar",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "close_btn_size",
+      "label": "Tamanho do botão fechar",
+      "min": 20,
+      "max": 40,
+      "step": 2,
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "close_btn_top",
+      "label": "Posição topo botão fechar",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "close_btn_right",
+      "label": "Posição direita botão fechar",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "pin_color",
+      "label": "Cor do ponteiro",
+      "default": "#E63946"
+    },
+    {
+      "type": "range",
+      "id": "slice_border_width",
+      "label": "Largura das bordas entre fatias",
+      "min": 2,
+      "max": 15,
+      "step": 1,
+      "default": 8,
+      "info": "Espessura das linhas brancas entre as fatias"
+    },
+    {
+      "type": "range",
+      "id": "outer_border_width",
+      "label": "Largura da borda externa da roleta",
+      "min": 5,
+      "max": 20,
+      "step": 1,
+      "default": 10,
+      "info": "Espessura da borda branca ao redor da roleta"
+    },
+    {
+      "type": "header",
+      "content": "📝 Título"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Cor do título",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Tamanho do título (desktop)",
+      "min": 18,
+      "max": 36,
+      "step": 2,
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "label": "Tamanho do título (mobile)",
+      "min": 16,
+      "max": 28,
+      "step": 2,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "title_bottom_margin",
+      "label": "Espaço abaixo do título (desktop)",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "title_bottom_margin_mobile",
+      "label": "Espaço abaixo do título (mobile)",
+      "min": 10,
+      "max": 30,
+      "step": 5,
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "📋 Formulário"
+    },
+    {
+      "type": "text",
+      "id": "email_label",
+      "label": "Label do E-mail",
+      "default": "E-mail*"
+    },
+    {
+      "type": "text",
+      "id": "email_placeholder",
+      "label": "Placeholder do E-mail",
+      "default": "Digite seu melhor e-mail"
+    },
+    {
+      "type": "text",
+      "id": "phone_label",
+      "label": "Label do Celular",
+      "default": "Celular*"
+    },
+    {
+      "type": "text",
+      "id": "phone_prefix",
+      "label": "Prefixo do telefone",
+      "default": "+55"
+    },
+    {
+      "type": "text",
+      "id": "phone_placeholder",
+      "label": "Placeholder do Celular",
+      "default": "(11) 96123-4567"
+    },
+    {
+      "type": "textarea",
+      "id": "privacy_text",
+      "label": "Texto de privacidade",
+      "default": "Ao marcar está caixa, você concorda com a nossa <strong>Política de Privacidade</strong>"
+    },
+    {
+      "type": "text",
+      "id": "submit_text",
+      "label": "Texto do botão",
+      "default": "GIRAR ROLETA"
+    },
+    {
+      "type": "range",
+      "id": "form_gap",
+      "label": "Espaço entre campos (desktop)",
+      "min": 8,
+      "max": 30,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "form_gap_mobile",
+      "label": "Espaço entre campos (mobile)",
+      "min": 6,
+      "max": 20,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "label_size",
+      "label": "Tamanho das labels",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "label_bottom_margin",
+      "label": "Espaço abaixo das labels",
+      "min": 4,
+      "max": 12,
+      "step": 2,
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "input_padding",
+      "label": "Padding vertical inputs",
+      "min": 8,
+      "max": 16,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "input_padding_horizontal",
+      "label": "Padding horizontal inputs",
+      "min": 10,
+      "max": 20,
+      "step": 2,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "input_font_size",
+      "label": "Tamanho fonte inputs",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "label": "Borda arredondada inputs",
+      "min": 4,
+      "max": 12,
+      "step": 2,
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "privacy_font_size",
+      "label": "Tamanho texto privacidade",
+      "min": 10,
+      "max": 14,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": "Cor dos labels",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": "Cor da borda dos inputs",
+      "default": "#dddddd"
+    },
+    {
+      "type": "header",
+      "content": "🔵 Botão Principal"
+    },
+    {
+      "type": "color",
+      "id": "btn_bg",
+      "label": "Cor do botão",
+      "default": "#4FC3F7"
+    },
+    {
+      "type": "color",
+      "id": "btn_bg_hover",
+      "label": "Cor do botão (hover)",
+      "default": "#29B6F6"
+    },
+    {
+      "type": "color",
+      "id": "btn_text",
+      "label": "Cor do texto do botão",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "btn_padding",
+      "label": "Padding do botão",
+      "min": 10,
+      "max": 20,
+      "step": 2,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "btn_font_size",
+      "label": "Tamanho fonte do botão",
+      "min": 14,
+      "max": 20,
+      "step": 1,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "btn_border_radius",
+      "label": "Borda arredondada botão",
+      "min": 4,
+      "max": 12,
+      "step": 2,
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "🎁 Tela de Resultado - Com Prêmio"
+    },
+    {
+      "type": "text",
+      "id": "result_emoji",
+      "label": "Emoji do resultado",
+      "default": "🎉"
+    },
+    {
+      "type": "text",
+      "id": "result_title",
+      "label": "Título do resultado",
+      "default": "Parabéns!"
+    },
+    {
+      "type": "text",
+      "id": "result_text_prefix",
+      "label": "Texto antes do prêmio",
+      "default": "Você ganhou"
+    },
+    {
+      "type": "text",
+      "id": "result_text_suffix",
+      "label": "Texto depois do prêmio",
+      "default": "de desconto!"
+    },
+    {
+      "type": "text",
+      "id": "code_label",
+      "label": "Label do código",
+      "default": "Código:"
+    },
+    {
+      "type": "range",
+      "id": "result_title_size",
+      "label": "Tamanho título resultado",
+      "min": 18,
+      "max": 30,
+      "step": 2,
+      "default": 22
+    },
+    {
+      "type": "range",
+      "id": "result_title_bottom_margin",
+      "label": "Espaço abaixo título resultado",
+      "min": 8,
+      "max": 20,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "result_text_size",
+      "label": "Tamanho texto resultado",
+      "min": 14,
+      "max": 20,
+      "step": 1,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "result_text_bottom_margin",
+      "label": "Espaço abaixo texto resultado",
+      "min": 8,
+      "max": 20,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "color",
+      "id": "result_title_color",
+      "label": "Cor do título do resultado",
+      "default": "#4FC3F7"
+    },
+    {
+      "type": "text",
+      "id": "copy_btn_text",
+      "label": "Texto do botão copiar",
+      "default": "Copiar Código"
+    },
+    {
+      "type": "color",
+      "id": "copy_btn_bg",
+      "label": "Cor do botão copiar",
+      "default": "#4CAF50"
+    },
+    {
+      "type": "range",
+      "id": "result_btn_padding",
+      "label": "Padding vertical botões resultado",
+      "min": 8,
+      "max": 16,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "result_btn_padding_horizontal",
+      "label": "Padding horizontal botões resultado",
+      "min": 16,
+      "max": 32,
+      "step": 4,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "result_btn_font_size",
+      "label": "Tamanho fonte botões resultado",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "result_btn_top_margin",
+      "label": "Espaço acima botões resultado",
+      "min": 8,
+      "max": 20,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "text",
+      "id": "copy_success_text",
+      "label": "Texto ao copiar código",
+      "default": "Código copiado:"
+    },
+    {
+      "type": "header",
+      "content": "😢 Tela de Resultado - Sem Prêmio"
+    },
+    {
+      "type": "text",
+      "id": "no_prize_emoji",
+      "label": "Emoji quando não ganha",
+      "default": "😢"
+    },
+    {
+      "type": "text",
+      "id": "no_prize_title",
+      "label": "Título quando não ganha",
+      "default": "Que pena!"
+    },
+    {
+      "type": "text",
+      "id": "no_prize_text",
+      "label": "Texto quando não ganha",
+      "default": "Tente novamente na próxima!"
+    },
+    {
+      "type": "text",
+      "id": "try_again_btn_text",
+      "label": "Texto botão tentar novamente",
+      "default": "Tentar Novamente"
+    },
+    {
+      "type": "color",
+      "id": "try_again_btn_bg",
+      "label": "Cor botão tentar novamente",
+      "default": "#FF9800"
+    },
+    {
+      "type": "header",
+      "content": "📧 Integração de Dados"
+    },
+    {
+      "type": "paragraph",
+      "content": "Configure onde os emails e telefones coletados serão salvos:"
+    },
+    {
+      "type": "checkbox",
+      "id": "save_to_shopify",
+      "label": "✅ Salvar no Shopify (Recomendado)",
+      "default": true,
+      "info": "Salva automaticamente os contatos como customers no Shopify com a tag 'spin-wheel-participant'"
+    },
+    {
+      "type": "checkbox",
+      "id": "klaviyo_enabled",
+      "label": "Ativar integração Klaviyo",
+      "default": false,
+      "info": "Configure abaixo para também enviar dados para Klaviyo"
+    },
+    {
+      "type": "text",
+      "id": "klaviyo_api_key",
+      "label": "Klaviyo API Key",
+      "info": "Encontre em Account > Settings > API Keys"
+    },
+    {
+      "type": "text",
+      "id": "klaviyo_list_id",
+      "label": "Klaviyo List ID",
+      "info": "ID da lista onde os contatos serão adicionados"
+    },
+    {
+      "type": "header",
+      "content": "📨 Integração Mailbiz"
+    },
+    {
+      "type": "checkbox",
+      "id": "mailbiz_enabled",
+      "label": "Ativar integração Mailbiz",
+      "default": true,
+      "info": "Envia leads automaticamente para o Mailbiz"
+    },
+    {
+      "type": "text",
+      "id": "mailbiz_api_key",
+      "label": "Mailbiz API Key",
+      "default": "03ab-f688-8616-fe98-1cd0-fff3-0ec4-2436",
+      "info": "Sua chave de API do Mailbiz"
+    },
+    {
+      "type": "text",
+      "id": "mailbiz_list_id",
+      "label": "Mailbiz List ID",
+      "info": "ID da lista onde os contatos serão adicionados (encontre no painel Mailbiz)"
+    },
+    {
+      "type": "text",
+      "id": "mailbiz_endpoint",
+      "label": "Mailbiz Endpoint",
+      "default": "https://mbiz.mailclick.me/api.php",
+      "info": "Endpoint da API (conferir no painel)"
+    },
+    {
+      "type": "header",
+      "content": "📊 Integração Google Sheets"
+    },
+    {
+      "type": "checkbox",
+      "id": "google_sheets_enabled",
+      "label": "Ativar integração Google Sheets",
+      "default": false,
+      "info": "Envia leads automaticamente para planilha Google"
+    },
+    {
+      "type": "text",
+      "id": "google_sheets_webhook",
+      "label": "Google Sheets Webhook URL",
+      "info": "URL do Google Apps Script Web App (deploy como Web App)"
+    },
+    {
+      "type": "paragraph",
+      "content": "Como configurar: 1) Crie um Google Apps Script, 2) Cole o código de integração, 3) Deploy como Web App, 4) Cole a URL acima"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "prize",
+      "name": "Prêmio",
+      "settings": [
+        {
+          "type": "text",
+          "id": "prize_text",
+          "label": "Texto do Prêmio",
+          "default": "10%"
+        },
+        {
+          "type": "color",
+          "id": "prize_color",
+          "label": "Cor do Prêmio",
+          "default": "#4FC3F7"
+        },
+        {
+          "type": "text",
+          "id": "prize_code",
+          "label": "Código do Cupom (use 'NONE' para sem prêmio)",
+          "default": "SPIN10",
+          "info": "Deixe como NONE se quiser que seja 'Tente Novamente'"
+        },
+        {
+          "type": "range",
+          "id": "prize_probability",
+          "label": "Probabilidade (%)",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "default": 25,
+          "info": "A soma de todas as probabilidades deve ser 100%"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Roleta da Sorte",
+      "blocks": [
+        {
+          "type": "prize",
+          "settings": {
+            "prize_text": "10%",
+            "prize_color": "#81D4FA",
+            "prize_code": "SPIN12",
+            "prize_probability": 100
+          }
+        },
+        {
+          "type": "prize",
+          "settings": {
+            "prize_text": "5%",
+            "prize_color": "#B3E5FC",
+            "prize_code": "SPIN5",
+            "prize_probability": 0
+          }
+        },
+        {
+          "type": "prize",
+          "settings": {
+            "prize_text": "10%",
+            "prize_color": "#4FC3F7",
+            "prize_code": "SPIN10",
+            "prize_probability": 0
+          }
+        },
+        {
+          "type": "prize",
+          "settings": {
+            "prize_text": "BRINDE",
+            "prize_color": "#29B6F6",
+            "prize_code": "SPINBRINDE",
+            "prize_probability": 0
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
